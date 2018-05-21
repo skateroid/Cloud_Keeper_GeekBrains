@@ -29,6 +29,7 @@ www-test/
 *.iws
 *.iml
 */target/
+/client/target/
 /android/out/
 com_crashlytics_export_strings.xml
 
