@@ -27,7 +27,7 @@ public class ClientConnection implements ServerConst, Server_API {
     }
     public ClientConnection(){
     }
-    public void init(client.ChatWindow view){ //lazy init
+    public void init(Controller view){ //lazy init
         try{
             this.socket = new Socket(SERVER_URL, PORT);
             this.out = new DataOutputStream(socket.getOutputStream());
