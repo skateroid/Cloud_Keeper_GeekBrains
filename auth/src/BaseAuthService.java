@@ -3,6 +3,7 @@ package src;
 import java.util.ArrayList;
 
 public class BaseAuthService implements AuthService{
+    //Думаю стоит сделать класс как синглтон
     private class Entry{
         private String login;
         private String pass;
