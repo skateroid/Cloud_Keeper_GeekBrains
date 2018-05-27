@@ -8,15 +8,13 @@ import src.*;
 
 public class CloudServerHandler extends ChannelInboundHandlerAdapter {
     private boolean isAuth;
-    private CloudServer cloudServer;
+    private CloudServer cloudServer = new CloudServer();
     private ServiceMessage serviceMessage;
     private String nick;
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         System.out.println("Client connected...");
-        cloudServer = new CloudServer();
-        serviceMessage = new ServiceMessage();
         // Send greeting for a new connection.
         // ctx.write("Welcome to " + InetAddress.getLocalHost().getHostName() + "!\r\n");
         // ctx.write("It is " + new Date() + " now.\r\n");
@@ -27,35 +25,40 @@ public class CloudServerHandler extends ChannelInboundHandlerAdapter {
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         try {
             while (!isAuth) { //не заходит внутрь судя по всему, буду разбираться
-                String logpass = (String) msg;
-                if (logpass.startsWith(Server_API.AUTH)/*msg instanceof MessageForAuth*/) {
+                if (/*logpass.startsWith(Server_API.AUTH)*/msg instanceof MessageForAuth) {
+                    String logpass = ((MessageForAuth) msg).getText();
                     String[] logpass_arr = logpass.split(" ");
-                    String nick = cloudServer.getBaseAuthService().getNickByLoginPass(logpass_arr[1], logpass_arr[2]);
-                    if(nick != null){
-                        if(!cloudServer.isNickBusy(nick)){
+                    String nick = cloudServer.getBaseAuthService().getNickByLoginPass(logpass_arr[0], logpass_arr[1]);
+                    if (nick != null) {
+                        if (!cloudServer.isNickBusy(nick)) {
                             ctx.write(Server_API.AUTH_SUCCESSFUl + " " + nick);
                             ctx.flush();
                             this.nick = nick;
                             System.out.println("auth_OK");
-                            break;
-                        }else {
-                            ctx.write("This account is already in use!");
-                            ctx.flush();
+                            isAuth = true;
+                            MessageForAuth auth_ok = new MessageForAuth(Server_API.AUTH_SUCCESSFUl);
+                            return;
+                        } else {
+                            System.out.println("This account is already in use!");
+                            return;
+                            //ctx.flush();
                         }
-                    }else {
-                        ctx.write("Wrong login/password!");
-                        ctx.flush();
+                    } else {
+                        System.out.println("Wrong login/password!");
+                        return;
+                        //ctx.flush();
                     }
                 }
             }
-            if (msg == null)
-                return;
-            System.out.println(msg.getClass());
-            if (msg instanceof MyMessage) {
-                System.out.println("Client text message: " + ((MyMessage) msg).getText());
-            } else {
-                System.out.printf("Server received wrong object!");
-                return;
+            if (isAuth) {
+                if (msg == null)
+                    return;
+                System.out.println(msg.getClass());
+                if (msg instanceof MyMessage) {
+                    System.out.println("Client text message: " + ((MyMessage) msg).getText());
+                } else {
+                    System.out.printf("Server received wrong object!");
+                }
             }
         } finally {
             ReferenceCountUtil.release(msg);

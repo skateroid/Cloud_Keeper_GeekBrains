@@ -9,8 +9,7 @@ public class Controller {
 
     private ClientConnection clientConnection;
 
-    @FXML
-    private Pane authPanel;
+    @FXML private Pane authPanel;
     @FXML private TextField loginField;
     @FXML private PasswordField passField;
     @FXML private Pane workArea;
@@ -23,7 +22,6 @@ public class Controller {
     @FXML
     public void auth() {
         clientConnection.auth(loginField.getText(), passField.getText());
-        System.out.println(loginField.getText() + passField.getText());
         loginField.clear();
         passField.clear();
     }

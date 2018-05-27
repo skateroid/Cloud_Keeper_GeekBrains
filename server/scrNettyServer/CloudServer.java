@@ -19,13 +19,14 @@ public class CloudServer {
     private BaseAuthService baseAuthService;
 
     public CloudServer() {
+        baseAuthService = new BaseAuthService();
     }
 
 
     public void run() throws Exception {
         EventLoopGroup mainGroup = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
-        baseAuthService = new BaseAuthService();
+
         try {
             ServerBootstrap b = new ServerBootstrap();
             b.group(mainGroup, workerGroup)
