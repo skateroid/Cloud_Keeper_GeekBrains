@@ -8,10 +8,8 @@ import java.net.Socket;
 import java.util.Arrays;
 
 import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
-import src.MessageForAuth;
-import src.MyMessage;
-import src.ServerConst;
-import src.Server_API;
+import com.geekcloud.common.settings.ServerConst;
+import com.geekcloud.common.messaging.*;
 
 //import static common.Server_API.AUTH_SUCCESSFUl;
 

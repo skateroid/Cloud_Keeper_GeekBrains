@@ -1,4 +1,4 @@
-package src;
+package com.geekcloud.common.messaging;
 
 import java.io.Serializable;
 

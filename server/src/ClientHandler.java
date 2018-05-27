@@ -1,5 +1,7 @@
 package src;
 
+import com.geekcloud.common.messaging.Server_API;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -44,7 +46,7 @@ public class ClientHandler implements Server_API {
                     String message = in.readUTF();
                     if(message.startsWith(Server_API.SYSTEM_SYMBOL)){
                         if(message.equalsIgnoreCase(Server_API.CLOSE_CONNECTION)) break;
-                        else if(message.startsWith(Server_API.PRIVATE_MESSAGE)){ // /w nick message
+                        else if(message.startsWith(Server_API.PRIVATE_MESSAGE)){ // /w nick messaging
                             String nameTo = message.split(" ")[1];
                             String messageText = message.substring(Server_API.PRIVATE_MESSAGE.length() + nameTo.length() + 2);
                             server.sendPrivateMessage(this, nameTo, messageText);

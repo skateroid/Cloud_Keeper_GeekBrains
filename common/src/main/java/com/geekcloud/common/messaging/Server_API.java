@@ -1,4 +1,4 @@
-package src;
+package com.geekcloud.common.messaging;
 
 public interface Server_API {
     String SYSTEM_SYMBOL = "/";

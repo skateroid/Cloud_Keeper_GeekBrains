@@ -1,5 +1,11 @@
 package src;
 
+import com.geekcloud.auth.AuthService;
+import com.geekcloud.auth.DatabaseAuthService;
+import com.geekcloud.auth.exceptions.AuthServiceException;
+import com.geekcloud.common.settings.ServerConst;
+import com.geekcloud.common.messaging.Server_API;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -17,15 +23,15 @@ public class Server implements ServerConst, Server_API {
         clients = new Vector<>(); //вектор нужно заменять на коллекцию из java.util.concurrent или Collections.synchronized
         try{
             serverSocket = new ServerSocket(ServerConst.PORT);
-            authService = new BaseAuthService();
-            authService.start(); //placeholder
+            authService = new DatabaseAuthService();
+            authService.start();
             System.out.println("Сервер запущен, ждем клиентов");
             while(true){
                 socket = serverSocket.accept(); //ждем подключений, сервер становится на паузу
                 clients.add(new ClientHandler(this, socket));
                 System.out.println("Клиент подключился");
             }
-        }catch(IOException e){
+        }catch(IOException | AuthServiceException e){
             System.out.println("Ошибка инициализации");
         }finally{
             try{

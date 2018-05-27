@@ -1,4 +1,4 @@
-package src;
+package com.geekcloud.common.messaging;
 
 public class ServiceMessage {
     //Класс для отправки служебных сообщений клиенту
