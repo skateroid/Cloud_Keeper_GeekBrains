@@ -4,7 +4,7 @@ package scrNettyServer;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.ReferenceCountUtil;
-import src.*;
+import com.geekcloud.common.messaging.*;
 
 public class CloudServerHandler extends ChannelInboundHandlerAdapter {
     private boolean isAuth;
@@ -28,7 +28,7 @@ public class CloudServerHandler extends ChannelInboundHandlerAdapter {
                 if (/*logpass.startsWith(Server_API.AUTH)*/msg instanceof MessageForAuth) {
                     String logpass = ((MessageForAuth) msg).getText();
                     String[] logpass_arr = logpass.split(" ");
-                    String nick = cloudServer.getBaseAuthService().getNickByLoginPass(logpass_arr[0], logpass_arr[1]);
+                    String nick = cloudServer.getAuthService().getNickByLoginPass(logpass_arr[0], logpass_arr[1]);
                     if (nick != null) {
                         if (!cloudServer.isNickBusy(nick)) {
                             ctx.write(Server_API.AUTH_SUCCESSFUl + " " + nick);

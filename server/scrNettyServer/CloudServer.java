@@ -1,5 +1,7 @@
 package scrNettyServer;
 
+import com.geekcloud.auth.AuthService;
+import com.geekcloud.auth.DatabaseAuthService;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -10,16 +12,14 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.serialization.ClassResolvers;
 import io.netty.handler.codec.serialization.ObjectDecoder;
-import src.AuthService;
-import src.BaseAuthService;
-import src.ServerConst;
+import com.geekcloud.common.settings.ServerConst;
 
 public class CloudServer {
     private static final int MAX_OBJ_SIZE = 1024 * 1024 * 100; // 10 mb
-    private BaseAuthService baseAuthService;
+    private AuthService authService;
 
     public CloudServer() {
-        baseAuthService = new BaseAuthService();
+        authService = new DatabaseAuthService();
     }
 
 
@@ -51,8 +51,8 @@ public class CloudServer {
         }
     }
 
-    public BaseAuthService getBaseAuthService() {
-        return baseAuthService;
+    public AuthService getAuthService() {
+        return authService;
     }
 
     public boolean isNickBusy(String nick) {
