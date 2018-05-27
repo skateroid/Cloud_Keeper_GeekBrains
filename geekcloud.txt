@@ -1,0 +1,563 @@
+// на данный момент в работе четыре модуля - server, common, client и auth
+// пока адаптируем бывший чат, к работе с файлами не приступали
+
+
+//------модуль server --------------------------------------------//
+// --- содержит два класса - CloudServer и CloudServerHandler --- //
+
+package scrNettyServer;
+
+import com.geekcloud.auth.AuthService;
+import com.geekcloud.auth.DatabaseAuthService;
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.serialization.ClassResolvers;
+import io.netty.handler.codec.serialization.ObjectDecoder;
+import com.geekcloud.common.settings.ServerConst;
+
+public class CloudServer {
+    private static final int MAX_OBJ_SIZE = 1024 * 1024 * 100; // 10 mb
+    private AuthService authService;
+
+    public CloudServer() {
+        authService = new DatabaseAuthService();
+    }
+
+    public void run() throws Exception {
+        EventLoopGroup mainGroup = new NioEventLoopGroup();
+        EventLoopGroup workerGroup = new NioEventLoopGroup();
+
+        try {
+            ServerBootstrap b = new ServerBootstrap();
+            b.group(mainGroup, workerGroup)
+                    .channel(NioServerSocketChannel.class)
+                    // .handler(new LoggingHandler(LogLevel.INFO))
+                    .childHandler(new ChannelInitializer<SocketChannel>() {
+                        protected void initChannel(SocketChannel socketChannel) throws Exception {
+                            socketChannel.pipeline().addLast(
+                                    new ObjectDecoder(MAX_OBJ_SIZE, ClassResolvers.cacheDisabled(null)),
+                                    new CloudServerHandler()
+                            );
+                        }
+                    })
+                    .option(ChannelOption.SO_BACKLOG, 128)
+                    .option(ChannelOption.TCP_NODELAY, true)
+                    .childOption(ChannelOption.SO_KEEPALIVE, true);
+            ChannelFuture future = b.bind(ServerConst.PORT).sync();
+            future.channel().closeFuture().sync();
+        } finally {
+            mainGroup.shutdownGracefully();
+            workerGroup.shutdownGracefully();
+        }
+    }
+
+    public AuthService getAuthService() {
+        return authService;
+    }
+
+    public boolean isNickBusy(String nick) {
+        //Тут проверка подключен ли кто уже под этим ником (или логином?)
+        //Возможно не тут это нужно делать
+        return false;
+    }
+
+    public static void main(String[] args) throws Exception {
+        new CloudServer().run();
+    }
+}
+
+
+package scrNettyServer;
+
+
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.util.ReferenceCountUtil;
+import com.geekcloud.common.messaging.*;
+
+public class CloudServerHandler extends ChannelInboundHandlerAdapter {
+    private boolean isAuth;
+    private CloudServer cloudServer = new CloudServer();
+    private ServiceMessage serviceMessage;
+    private String nick;
+
+    @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        System.out.println("Client connected...");
+        // Send greeting for a new connection.
+        // ctx.write("Welcome to " + InetAddress.getLocalHost().getHostName() + "!\r\n");
+        // ctx.write("It is " + new Date() + " now.\r\n");
+        // ctx.flush();
+    }
+
+    @Override
+    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        try {
+            while (!isAuth) { //не заходит внутрь судя по всему, буду разбираться
+                if (/*logpass.startsWith(Server_API.AUTH)*/msg instanceof MessageForAuth) {
+                    String logpass = ((MessageForAuth) msg).getText();
+                    String[] logpass_arr = logpass.split(" ");
+                    String nick = cloudServer.getAuthService().getNickByLoginPass(logpass_arr[0], logpass_arr[1]);
+                    if (nick != null) {
+                        if (!cloudServer.isNickBusy(nick)) {
+                            ctx.write(Server_API.AUTH_SUCCESSFUl + " " + nick);
+                            ctx.flush();
+                            this.nick = nick;
+                            System.out.println("auth_OK");
+                            isAuth = true;
+                            MessageForAuth auth_ok = new MessageForAuth(Server_API.AUTH_SUCCESSFUl);
+                            return;
+                        } else {
+                            System.out.println("This account is already in use!");
+                            return;
+                            //ctx.flush();
+                        }
+                    } else {
+                        System.out.println("Wrong login/password!");
+                        return;
+                        //ctx.flush();
+                    }
+                }
+            }
+            if (isAuth) {
+                if (msg == null)
+                    return;
+                System.out.println(msg.getClass());
+                if (msg instanceof MyMessage) {
+                    System.out.println("Client text message: " + ((MyMessage) msg).getText());
+                } else {
+                    System.out.printf("Server received wrong object!");
+                }
+            }
+        } finally {
+            ReferenceCountUtil.release(msg);
+        }
+    }
+
+    @Override
+    public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
+        ctx.flush();
+    }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        cause.printStackTrace();
+        //ctx.flush();
+        ctx.close();
+    }
+}
+
+
+// ---- модуль common -------------------------//
+// содержит два подпакета:
+// - settings для настроек (хоста, порта, имени базы данных и т.п.) 
+// - messaging для определения формата пересылаемых сообщений 
+
+package com.geekcloud.common.settings;
+
+public interface ServerConst {
+    int PORT = 8189;
+    String SERVER_URL = "localhost";
+}
+
+public interface FileStorageConst {
+
+    String ROOT_DIRECTORY_NAME = "geekcloud";
+    String USER_DATABASE_NAME = "users";
+    String USER_DATABASE_TYPE ="sqlite";
+
+    default Path getRootDirectory() {
+        return Paths.get(ROOT_DIRECTORY_NAME);
+    }
+
+    default String getDatabaseURL () {
+        return "jdbc:" + USER_DATABASE_TYPE + ":" + getRootDirectory().resolve(USER_DATABASE_NAME);
+    }
+}
+
+package com.geekcloud.common.messaging;
+
+public interface Server_API {
+    String SYSTEM_SYMBOL = "/";
+    String CLOSE_CONNECTION = "/end";
+    String AUTH = "/auth";
+    String AUTH_SUCCESSFUl = "/authok";
+    String PRIVATE_MESSAGE = "/w";
+    String USERS_LIST = "/userslist";
+}
+
+public class MyMessage implements Serializable {
+    //Этот класс для пересылки файлов
+    private static final long serialVersionUID = 5193392663743561680L;
+
+    private String text;
+
+    public String getText() {
+        return text;
+    }
+
+    public MyMessage(String text) {
+        this.text = text;
+    }
+}
+
+
+public class MessageForAuth implements Serializable {
+    //Этим классом передавать сообщения для авторизации
+    private String text;
+
+    public MessageForAuth(String text) {
+        this.text = text;
+    }
+
+    public String getText() {
+        return text;
+    }
+}
+
+public class ServiceMessage {
+    //Класс для отправки служебных сообщений клиенту
+    //В разработке
+}
+
+
+// ------ модуль авторизации -------------------------------//
+// интерфейс AuthService и его реализация на mysql ---------//
+
+
+public interface AuthService {
+    void start() throws AuthServiceException;
+    void stop();
+    String getNickByLoginPass(String username, String password);
+    boolean isLoginAccepted(String username, String password);
+    boolean isUserNameVacant(String username);
+    void registerNewUser (String username, String password, String nick) throws UserAlreadyExistsException, DatabaseConnectionException;
+    void deleteUser (String username, String password) throws DatabaseConnectionException;
+    List<String> listRegisteredUsers();
+}
+
+// Имплементация интерфейса AuthService с подключением к базе данных.
+// Параметры подключения - в модуле common, в интерфейсе FileStorageConst
+public class DatabaseAuthService implements AuthService, FileStorageConst {
+
+    private Connection connection;
+    private List<PreparedStatement> preparedStatements;
+    private PreparedStatement authQuery;
+    private PreparedStatement findUserQuery;
+    private PreparedStatement registerNewUserQuery;
+    private PreparedStatement deleteUserQuery;
+    private PreparedStatement listAllUsersQuery;
+
+    // запуск службы - проверка наличия директории и базы, их создание в случае необходимости,
+    // подключение, заготовка PreparedStatements, заполнение тестовыми записями
+    public synchronized void start() throws DatabaseConnectionException {
+        try {
+            if( (! Files.exists(getRootDirectory())) || (!Files.isDirectory(getRootDirectory())))
+                Files.createDirectory(getRootDirectory());
+            this.connection = DriverManager.getConnection(getDatabaseURL());
+            checkCreateUsersTable();
+            prepareStatements();
+            testPrefill(); // TODO убрать по завершении разработки
+        } catch (SQLException | IOException | AuthServiceException e) {
+            throw new DatabaseConnectionException();
+        }
+    }
+
+    private synchronized void testPrefill() throws AuthServiceException {
+        if (isUserNameVacant("login1")) registerNewUser("login1", "pass1", "Rick");
+        if (isUserNameVacant("login2")) registerNewUser("login2", "pass2", "Morty");
+        if (isUserNameVacant("login3")) registerNewUser("login3", "pass3", "Bet");
+    }
+
+    private void checkCreateUsersTable() throws SQLException {
+        connection.createStatement().executeUpdate("CREATE TABLE IF NOT EXISTS users (" +
+                "    user CHAR (20) NOT NULL UNIQUE," +
+                "    password CHAR (12) NOT NULL, " +
+                "    nick CHAR (20) NOT NULL);" +
+                "    CREATE UNIQUE INDEX IF NOT EXISTS i_users ON users (user);");
+    }
+
+    private void prepareStatements () throws SQLException {
+
+        preparedStatements = new LinkedList<>();
+
+        authQuery = connection.prepareStatement("SELECT * FROM users WHERE user = ? AND password = ? LIMIT 1");
+        preparedStatements.add(authQuery);
+
+        findUserQuery = connection.prepareStatement("SELECT * FROM users WHERE user = ? LIMIT 1");
+        preparedStatements.add(findUserQuery);
+
+        registerNewUserQuery = connection.prepareStatement("INSERT INTO users (user, password, nick) VALUES (?, ?, ?)");
+        preparedStatements.add(registerNewUserQuery);
+
+        deleteUserQuery = connection.prepareStatement("DELETE FROM users WHERE user = ?");
+        preparedStatements.add(deleteUserQuery);
+
+        listAllUsersQuery = connection.prepareStatement("SELECT user FROM users");
+        preparedStatements.add(listAllUsersQuery);
+    }
+
+    // остановка службы - закрытие стейтментов и подключения
+    public void stop() {
+        try {
+            for (PreparedStatement ps: preparedStatements) ps.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        try {
+            connection.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    // Возвращаем ник по логину и паролю,
+    // или null, если пара логин/пароль не найдена
+    public synchronized String getNickByLoginPass(String login, String pass) {
+        try {
+            authQuery.setString(1, login);
+            authQuery.setString(2, pass);
+            ResultSet resultSet = authQuery.executeQuery();
+            if (resultSet.next()) {
+                return resultSet.getString("nick");
+            }
+            return null;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    // все методы ниже синхронизированы, т.к. работают через один и тот же набор PreparedStatements
+
+    // проверяем, есть ли в базе записи с указанным логином и (хеш-)паролем.
+    // если запрос возвращается пустой или происходит ошибка - отвечаем false
+    public synchronized boolean isLoginAccepted(String username, String password) {
+        try {
+            authQuery.setString(1, username);
+            authQuery.setString(2, password);
+            return authQuery.executeQuery().next();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // проверяем, не занят ли в базе указанный логин
+    // метод вынесен отдельно от регистрации, чтобы иметь возможность проверить на стадии заполнения формы
+    public synchronized boolean isUserNameVacant(String username) {
+        try {
+            findUserQuery.setString(1, username);
+            return !findUserQuery.executeQuery().next();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // регистрация нового пользователя
+    public synchronized void registerNewUser(String username, String password, String nick) throws UserAlreadyExistsException, DatabaseConnectionException {
+        if (isUserNameVacant(username)) {
+            try {
+                registerNewUserQuery.setString(1, username);
+                registerNewUserQuery.setString(2, password);
+                registerNewUserQuery.setString(3, nick);
+                registerNewUserQuery.executeUpdate();
+            } catch (SQLException e) {
+                throw new DatabaseConnectionException();
+            }
+        } else throw new UserAlreadyExistsException();
+    }
+
+    // удаление пользователя (с паролем для проверки полномочий на удаление)
+    public synchronized void deleteUser (String username, String password) throws DatabaseConnectionException {
+        if (isLoginAccepted(username, password)) {
+            try {
+                deleteUserQuery.setString(1, username);
+                if (deleteUserQuery.executeUpdate() < 1) throw new DatabaseConnectionException();
+            } catch (SQLException e) {
+                throw new DatabaseConnectionException();
+            }
+        }
+    }
+
+    // список всех зарегистрированных в базе пользователей
+    public List<String> listRegisteredUsers() {
+        List <String> list = new LinkedList<>();
+        try {
+            ResultSet resultSet = listAllUsersQuery.executeQuery();
+            while (resultSet.next()) list.add(resultSet.getString(1));
+            return list;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+}
+
+
+// созданы классы исключений, чтобы модуль авторизации кидался своими, а не чужими
+public class AuthServiceException extends Exception {}
+public class DatabaseConnectionException extends AuthServiceException {}
+public class UserAlreadyExistsException extends AuthServiceException {}
+
+
+
+
+// ------ модуль client -------------------------------------//
+// класс ClientConnection для логики и Controller для управления FXML-представлением
+
+public class Main extends Application {
+    @Override
+    public void start(Stage primaryStage) throws Exception {
+        Parent root = FXMLLoader.load(getClass().getClassLoader().getResource("sample.fxml")); //вот тут пришлось добавить getClassLoader(), иначе не получилось грузить fxml
+        primaryStage.setTitle("GeekCloud Client");
+        primaryStage.setScene(new Scene(root, 600, 600));
+        primaryStage.show();
+    }
+
+    public static void main(String[] args) {
+        launch(args);
+
+    }
+}
+
+public class ClientConnection implements ServerConst, Server_API {
+    Socket socket;
+    DataOutputStream out;
+    DataInputStream in;
+    ObjectEncoderOutputStream oeos;
+    private boolean isAuthrozied = false;
+
+    public boolean isAuthrozied() {
+        return isAuthrozied;
+    }
+
+    public void setAuthrozied(boolean authrozied) {
+        isAuthrozied = authrozied;
+    }
+
+    public ClientConnection() {
+    }
+
+    public void init(Controller view) { //lazy init
+        try {
+            this.socket = new Socket(SERVER_URL, PORT);
+            this.out = new DataOutputStream(socket.getOutputStream());
+            this.in = new DataInputStream(socket.getInputStream());
+            this.oeos = new ObjectEncoderOutputStream(socket.getOutputStream());
+            new Thread(() -> {
+                try {
+                    while (true) {
+                        String message = in.readUTF();
+                        System.out.println("here");
+                        if (message.startsWith(AUTH_SUCCESSFUl)) {
+                            setAuthrozied(true);
+                            view.switchWindows();
+                            break;
+                        }
+                        view.showMessage(message);
+                    }
+                    while (true) {
+                        String message = in.readUTF();
+                        String[] elements = message.split(" ");
+                        if (message.startsWith(SYSTEM_SYMBOL)) {
+                            if (elements[0].equals(CLOSE_CONNECTION)) {
+                                setAuthrozied(false);
+                                view.showMessage(message.substring(CLOSE_CONNECTION.length() + 1));
+                                view.switchWindows();
+                            } else if (message.startsWith(USERS_LIST)) {
+                                String[] users = message.split(" ");
+                                Arrays.sort(users);
+                                System.out.println(Arrays.toString(users));
+                                view.showUsersList(users);
+                            }
+
+                        } else {
+                            view.showMessage(message);
+                        }
+                    }
+                } catch (IOException e) {
+                } finally {
+                    disconnect();
+                }
+            }).start();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void sendMessage(String message) {
+        try {
+            out.writeUTF(message);
+            out.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void auth(String login, String password) {
+        try {
+            MessageForAuth messageForAuth = new MessageForAuth(login + " " + password);
+            oeos.writeObject(messageForAuth);
+            oeos.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void disconnect() {
+        try {
+            out.writeUTF(CLOSE_CONNECTION);
+            oeos.close();
+            socket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+}
+
+public class Controller { // в разработке
+
+    private ClientConnection clientConnection;
+
+    @FXML private Pane authPanel;
+    @FXML private TextField loginField;
+    @FXML private PasswordField passField;
+    @FXML private Pane workArea;
+
+    @FXML private void initialize() {
+        this.clientConnection = new ClientConnection();
+        clientConnection.init(this);
+    }
+
+    @FXML
+    public void auth() {
+        clientConnection.auth(loginField.getText(), passField.getText());
+        loginField.clear();
+        passField.clear();
+    }
+
+    public void switchWindows() {
+        authPanel.setVisible(!clientConnection.isAuthrozied());
+        workArea.setVisible(clientConnection.isAuthrozied());
+    }
+
+    public void showMessage(String message) {
+        // метод будет заменен при переработке функционала с чата на облачное хранилище
+    }
+
+    public void showUsersList(String[] users) {
+        // метод будет заменен при переработке функционала с чата на облачное хранилище
+    }
+}
+
+
