@@ -5,14 +5,13 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 
 import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
 import com.geekcloud.common.settings.ServerConst;
 import com.geekcloud.common.messaging.*;
-
-//import static common.Server_API.AUTH_SUCCESSFUl;
-
 
 public class ClientConnection implements ServerConst, Server_API {
     Socket socket;
@@ -90,10 +89,14 @@ public class ClientConnection implements ServerConst, Server_API {
 
     public void auth(String login, String password) {
         try {
-            MessageForAuth messageForAuth = new MessageForAuth(login + " " + password);
-            oeos.writeObject(messageForAuth);
+            MessageDigest digest = java.security.MessageDigest.getInstance("MD5");
+            digest.update(password.getBytes());
+            AuthMessage authMessage = new AuthMessage(login, new String (digest.digest()));
+            oeos.writeObject(authMessage);
             oeos.flush();
         } catch (IOException e) {
+            e.printStackTrace();
+        } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
     }

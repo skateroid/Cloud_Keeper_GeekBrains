@@ -1,14 +1,14 @@
-// на данный момент в работе четыре модуля - server, common, client и auth
-// пока адаптируем бывший чат, к работе с файлами не приступали
+// пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ - server, common, client пїЅ auth
+// пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ, пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 
 
-//------модуль server --------------------------------------------//
-// --- содержит два класса - CloudServer и CloudServerHandler --- //
+//------пїЅпїЅпїЅпїЅпїЅпїЅ server --------------------------------------------//
+// --- пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ - CloudServer пїЅ CloudServerHandler --- //
 
-package scrNettyServer;
+package nettyServer;
 
 import com.geekcloud.auth.AuthService;
-import com.geekcloud.auth.DatabaseAuthService;
+import com.geekcloud.auth.SqliteAuthService;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -23,10 +23,10 @@ import com.geekcloud.common.settings.ServerConst;
 
 public class CloudServer {
     private static final int MAX_OBJ_SIZE = 1024 * 1024 * 100; // 10 mb
-    private AuthService authService;
+    private AuthService AUTH_SERVICE;
 
     public CloudServer() {
-        authService = new DatabaseAuthService();
+        AUTH_SERVICE = new DatabaseAuthService();
     }
 
     public void run() throws Exception {
@@ -58,12 +58,12 @@ public class CloudServer {
     }
 
     public AuthService getAuthService() {
-        return authService;
+        return AUTH_SERVICE;
     }
 
     public boolean isNickBusy(String nick) {
-        //Тут проверка подключен ли кто уже под этим ником (или логином?)
-        //Возможно не тут это нужно делать
+        //пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ (пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ?)
+        //пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
         return false;
     }
 
@@ -73,7 +73,7 @@ public class CloudServer {
 }
 
 
-package scrNettyServer;
+package nettyServer;
 
 
 import io.netty.channel.ChannelHandlerContext;
@@ -99,7 +99,7 @@ public class CloudServerHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         try {
-            while (!isAuth) { //не заходит внутрь судя по всему, буду разбираться
+            while (!isAuth) { //пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
                 if (/*logpass.startsWith(Server_API.AUTH)*/msg instanceof MessageForAuth) {
                     String logpass = ((MessageForAuth) msg).getText();
                     String[] logpass_arr = logpass.split(" ");
@@ -154,10 +154,10 @@ public class CloudServerHandler extends ChannelInboundHandlerAdapter {
 }
 
 
-// ---- модуль common -------------------------//
-// содержит два подпакета:
-// - settings для настроек (хоста, порта, имени базы данных и т.п.) 
-// - messaging для определения формата пересылаемых сообщений 
+// ---- пїЅпїЅпїЅпїЅпїЅпїЅ common -------------------------//
+// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ:
+// - settings пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ (пїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅ.пїЅ.) 
+// - messaging пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ 
 
 package com.geekcloud.common.settings;
 
@@ -193,7 +193,7 @@ public interface Server_API {
 }
 
 public class MyMessage implements Serializable {
-    //Этот класс для пересылки файлов
+    //пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
     private static final long serialVersionUID = 5193392663743561680L;
 
     private String text;
@@ -209,7 +209,7 @@ public class MyMessage implements Serializable {
 
 
 public class MessageForAuth implements Serializable {
-    //Этим классом передавать сообщения для авторизации
+    //пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     private String text;
 
     public MessageForAuth(String text) {
@@ -222,13 +222,13 @@ public class MessageForAuth implements Serializable {
 }
 
 public class ServiceMessage {
-    //Класс для отправки служебных сообщений клиенту
-    //В разработке
+    //пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+    //пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 }
 
 
-// ------ модуль авторизации -------------------------------//
-// интерфейс AuthService и его реализация на mysql ---------//
+// ------ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ -------------------------------//
+// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ AuthService пїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ mysql ---------//
 
 
 public interface AuthService {
@@ -242,8 +242,8 @@ public interface AuthService {
     List<String> listRegisteredUsers();
 }
 
-// Имплементация интерфейса AuthService с подключением к базе данных.
-// Параметры подключения - в модуле common, в интерфейсе FileStorageConst
+// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ AuthService пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ.
+// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ - пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ common, пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ FileStorageConst
 public class DatabaseAuthService implements AuthService, FileStorageConst {
 
     private Connection connection;
@@ -254,8 +254,8 @@ public class DatabaseAuthService implements AuthService, FileStorageConst {
     private PreparedStatement deleteUserQuery;
     private PreparedStatement listAllUsersQuery;
 
-    // запуск службы - проверка наличия директории и базы, их создание в случае необходимости,
-    // подключение, заготовка PreparedStatements, заполнение тестовыми записями
+    // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ - пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅ, пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ,
+    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ PreparedStatements, пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     public synchronized void start() throws DatabaseConnectionException {
         try {
             if( (! Files.exists(getRootDirectory())) || (!Files.isDirectory(getRootDirectory())))
@@ -263,7 +263,7 @@ public class DatabaseAuthService implements AuthService, FileStorageConst {
             this.connection = DriverManager.getConnection(getDatabaseURL());
             checkCreateUsersTable();
             prepareStatements();
-            testPrefill(); // TODO убрать по завершении разработки
+            testPrefill(); // TODO пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
         } catch (SQLException | IOException | AuthServiceException e) {
             throw new DatabaseConnectionException();
         }
@@ -303,7 +303,7 @@ public class DatabaseAuthService implements AuthService, FileStorageConst {
         preparedStatements.add(listAllUsersQuery);
     }
 
-    // остановка службы - закрытие стейтментов и подключения
+    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ - пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     public void stop() {
         try {
             for (PreparedStatement ps: preparedStatements) ps.close();
@@ -318,8 +318,8 @@ public class DatabaseAuthService implements AuthService, FileStorageConst {
 
     }
 
-    // Возвращаем ник по логину и паролю,
-    // или null, если пара логин/пароль не найдена
+    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ,
+    // пїЅпїЅпїЅ null, пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ/пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     public synchronized String getNickByLoginPass(String login, String pass) {
         try {
             authQuery.setString(1, login);
@@ -335,10 +335,10 @@ public class DatabaseAuthService implements AuthService, FileStorageConst {
         }
     }
 
-    // все методы ниже синхронизированы, т.к. работают через один и тот же набор PreparedStatements
+    // пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅ.пїЅ. пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ PreparedStatements
 
-    // проверяем, есть ли в базе записи с указанным логином и (хеш-)паролем.
-    // если запрос возвращается пустой или происходит ошибка - отвечаем false
+    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅ пїЅпїЅ пїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ (пїЅпїЅпїЅ-)пїЅпїЅпїЅпїЅпїЅпїЅпїЅ.
+    // пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ - пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ false
     public synchronized boolean isLoginAccepted(String username, String password) {
         try {
             authQuery.setString(1, username);
@@ -350,8 +350,8 @@ public class DatabaseAuthService implements AuthService, FileStorageConst {
         }
     }
 
-    // проверяем, не занят ли в базе указанный логин
-    // метод вынесен отдельно от регистрации, чтобы иметь возможность проверить на стадии заполнения формы
+    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
+    // пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
     public synchronized boolean isUserNameVacant(String username) {
         try {
             findUserQuery.setString(1, username);
@@ -362,7 +362,7 @@ public class DatabaseAuthService implements AuthService, FileStorageConst {
         }
     }
 
-    // регистрация нового пользователя
+    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     public synchronized void registerNewUser(String username, String password, String nick) throws UserAlreadyExistsException, DatabaseConnectionException {
         if (isUserNameVacant(username)) {
             try {
@@ -376,7 +376,7 @@ public class DatabaseAuthService implements AuthService, FileStorageConst {
         } else throw new UserAlreadyExistsException();
     }
 
-    // удаление пользователя (с паролем для проверки полномочий на удаление)
+    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ (пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ)
     public synchronized void deleteUser (String username, String password) throws DatabaseConnectionException {
         if (isLoginAccepted(username, password)) {
             try {
@@ -388,7 +388,7 @@ public class DatabaseAuthService implements AuthService, FileStorageConst {
         }
     }
 
-    // список всех зарегистрированных в базе пользователей
+    // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     public List<String> listRegisteredUsers() {
         List <String> list = new LinkedList<>();
         try {
@@ -403,7 +403,7 @@ public class DatabaseAuthService implements AuthService, FileStorageConst {
 }
 
 
-// созданы классы исключений, чтобы модуль авторизации кидался своими, а не чужими
+// пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ, пїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
 public class AuthServiceException extends Exception {}
 public class DatabaseConnectionException extends AuthServiceException {}
 public class UserAlreadyExistsException extends AuthServiceException {}
@@ -411,13 +411,13 @@ public class UserAlreadyExistsException extends AuthServiceException {}
 
 
 
-// ------ модуль client -------------------------------------//
-// класс ClientConnection для логики и Controller для управления FXML-представлением
+// ------ пїЅпїЅпїЅпїЅпїЅпїЅ client -------------------------------------//
+// пїЅпїЅпїЅпїЅпїЅ ClientConnection пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ Controller пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ FXML-пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 
 public class Main extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception {
-        Parent root = FXMLLoader.load(getClass().getClassLoader().getResource("sample.fxml")); //вот тут пришлось добавить getClassLoader(), иначе не получилось грузить fxml
+        Parent root = FXMLLoader.load(getClass().getClassLoader().getResource("sample.fxml")); //пїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ getClassLoader(), пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ fxml
         primaryStage.setTitle("GeekCloud Client");
         primaryStage.setScene(new Scene(root, 600, 600));
         primaryStage.show();
@@ -505,8 +505,8 @@ public class ClientConnection implements ServerConst, Server_API {
 
     public void auth(String login, String password) {
         try {
-            MessageForAuth messageForAuth = new MessageForAuth(login + " " + password);
-            oeos.writeObject(messageForAuth);
+            MessageForAuth authMessage = new MessageForAuth(login + " " + password);
+            oeos.writeObject(authMessage);
             oeos.flush();
         } catch (IOException e) {
             e.printStackTrace();
@@ -525,7 +525,7 @@ public class ClientConnection implements ServerConst, Server_API {
 
 }
 
-public class Controller { // в разработке
+public class Controller { // пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 
     private ClientConnection clientConnection;
 
@@ -552,11 +552,11 @@ public class Controller { // в разработке
     }
 
     public void showMessage(String message) {
-        // метод будет заменен при переработке функционала с чата на облачное хранилище
+        // пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     }
 
     public void showUsersList(String[] users) {
-        // метод будет заменен при переработке функционала с чата на облачное хранилище
+        // пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     }
 }
 

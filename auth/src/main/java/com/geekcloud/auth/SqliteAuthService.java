@@ -3,18 +3,18 @@ package com.geekcloud.auth;
 import com.geekcloud.auth.exceptions.AuthServiceException;
 import com.geekcloud.auth.exceptions.DatabaseConnectionException;
 import com.geekcloud.auth.exceptions.UserAlreadyExistsException;
-import com.geekcloud.common.settings.FileStorageConst;
 
-import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.MessageDigest;
 import java.sql.*;
 import java.util.LinkedList;
 import java.util.List;
 
 // Имплементация интерфейса AuthService с подключением к базе данных.
-// Параметры подключения - в модуле common, в интерфейсе FileStorageConst
-public class DatabaseAuthService implements AuthService, FileStorageConst {
+public class SqliteAuthService implements AuthService {
 
+    private final String DATABASE_URL;
     private Connection connection;
     private List<PreparedStatement> preparedStatements;
     private PreparedStatement authQuery;
@@ -23,25 +23,39 @@ public class DatabaseAuthService implements AuthService, FileStorageConst {
     private PreparedStatement deleteUserQuery;
     private PreparedStatement listAllUsersQuery;
 
-    // запуск службы - проверка наличия директории и базы, их создание в случае необходимости,
+    public SqliteAuthService(String databaseURL) {
+        this.DATABASE_URL = databaseURL;
+    }
+
+    // запуск службы - проверка наличия базы, её создание в случае необходимости,
     // подключение, заготовка PreparedStatements, заполнение тестовыми записями
     public synchronized void start() throws DatabaseConnectionException {
         try {
-            if( (! Files.exists(getRootDirectory())) || (!Files.isDirectory(getRootDirectory())))
-                Files.createDirectory(getRootDirectory());
-            this.connection = DriverManager.getConnection(getDatabaseURL());
+            this.connection = DriverManager.getConnection("jdbc:sqlite:"+DATABASE_URL);
             checkCreateUsersTable();
             prepareStatements();
             testPrefill(); // TODO убрать по завершении разработки
-        } catch (SQLException | IOException | AuthServiceException e) {
+        } catch (SQLException | AuthServiceException e) {
             throw new DatabaseConnectionException();
         }
     }
 
+    // Тестовые данные для базы - только на стадии разработки
     private synchronized void testPrefill() throws AuthServiceException {
-        if (isUserNameVacant("login1")) registerNewUser("login1", "pass1", "Rick");
-        if (isUserNameVacant("login2")) registerNewUser("login2", "pass2", "Morty");
-        if (isUserNameVacant("login3")) registerNewUser("login3", "pass3", "Bet");
+        String [] [] testUsers = {
+                {"login1",  "pass1", "Rick"},
+                {"login2",  "pass2", "Morty"},
+                {"login3",  "pass3", "Bet"}};
+        try {
+            MessageDigest digest = MessageDigest.getInstance("MD5");
+            for (int i = 0; i < 3; i++) {
+                digest.update(testUsers[i][1].getBytes());
+                if (isUserNameVacant(testUsers[i][0]))
+                    registerNewUser(testUsers[i][0], new String(digest.digest()), testUsers[i][2]);
+                if(Files.notExists(Paths.get(DATABASE_URL).getParent().resolve(testUsers[i][0])))
+                    Files.createDirectory(Paths.get(DATABASE_URL).getParent().resolve(testUsers[i][0]));
+            }
+        } catch (Exception e) { }
     }
 
     private void checkCreateUsersTable() throws SQLException {

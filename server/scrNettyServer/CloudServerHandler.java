@@ -1,20 +1,34 @@
 package scrNettyServer;
 
 
+import com.geekcloud.auth.AuthService;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.ReferenceCountUtil;
 import com.geekcloud.common.messaging.*;
 
+import java.net.InetAddress;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.util.logging.Logger;
+
 public class CloudServerHandler extends ChannelInboundHandlerAdapter {
+
+    private String login;
+    private final Path SERVER_DIRECTORY; // нужна, чтобы знать, куда пользователя уже не пускать
+    private Path currentDirectory; // нужна, чтобы знать, в какой серверной папке работает пользователь
+    private final AuthService AUTH_SERVICE;
     private boolean isAuth;
-    private CloudServer cloudServer = new CloudServer();
-    private ServiceMessage serviceMessage;
-    private String nick;
+
+    public CloudServerHandler (Path serverDirectory, AuthService AUTH_SERVICE) {
+        this.SERVER_DIRECTORY = serverDirectory;
+        this.AUTH_SERVICE = AUTH_SERVICE;
+    }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        System.out.println("Client connected...");
+        Logger.getGlobal().info("CLIENT CONNECTED: " + InetAddress.getLocalHost().getHostName());
         // Send greeting for a new connection.
         // ctx.write("Welcome to " + InetAddress.getLocalHost().getHostName() + "!\r\n");
         // ctx.write("It is " + new Date() + " now.\r\n");
@@ -24,40 +38,46 @@ public class CloudServerHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         try {
-            while (!isAuth) { //не заходит внутрь судя по всему, буду разбираться
-                if (/*logpass.startsWith(Server_API.AUTH)*/msg instanceof MessageForAuth) {
-                    String logpass = ((MessageForAuth) msg).getText();
-                    String[] logpass_arr = logpass.split(" ");
-                    String nick = cloudServer.getAuthService().getNickByLoginPass(logpass_arr[0], logpass_arr[1]);
-                    if (nick != null) {
-                        if (!cloudServer.isNickBusy(nick)) {
-                            ctx.write(Server_API.AUTH_SUCCESSFUl + " " + nick);
-                            ctx.flush();
-                            this.nick = nick;
-                            System.out.println("auth_OK");
-                            isAuth = true;
-                            MessageForAuth auth_ok = new MessageForAuth(Server_API.AUTH_SUCCESSFUl);
-                            return;
+
+            if (msg == null) return;
+
+            if (!isAuth) {
+                if (msg instanceof AuthMessage) {
+                    String login = ((AuthMessage) msg).getLogin();
+                    String password = ((AuthMessage) msg).getPassword();
+
+                    if (AUTH_SERVICE.isLoginAccepted(login, password)) {
+                        // Проверяем, на месте ли папка с файлами пользователя
+                        if(Files.isDirectory(SERVER_DIRECTORY.resolve(login), LinkOption.NOFOLLOW_LINKS)) {
+                            currentDirectory = SERVER_DIRECTORY.resolve(login);
                         } else {
-                            System.out.println("This account is already in use!");
-                            return;
-                            //ctx.flush();
+                            // если папки нет, пользователя пускать нельзя
+                            Logger.getGlobal().severe("NO DIRECTORY FOUND FOR VALID USER " + login);
+                            ctx.write(new ResultMessage(Result.FAILED));
+                            ctx.flush();
+                            throw new Exception("User directory not found");
                         }
+
+                        this.login = login;
+                        isAuth = true;
+
+                        ctx.write(new ResultMessage(Result.OK));
+                        // TODO вписать сюда отсылку списка файлов пользователю
+                        ctx.flush();
                     } else {
-                        System.out.println("Wrong login/password!");
-                        return;
-                        //ctx.flush();
+                        ctx.write(new ResultMessage(Result.FAILED));
+                        ctx.flush();
                     }
                 }
-            }
-            if (isAuth) {
-                if (msg == null)
-                    return;
-                System.out.println(msg.getClass());
-                if (msg instanceof MyMessage) {
-                    System.out.println("Client text message: " + ((MyMessage) msg).getText());
+            } else {
+                if (msg instanceof CommandMessage) {
+                    switch (((CommandMessage)msg).getCommand() ) {
+                        case DELETE:
+                        case RENAME:
+                            // TODO прописать обработку команд пользователя
+                    }
                 } else {
-                    System.out.printf("Server received wrong object!");
+                    Logger.getGlobal().warning("Server received wrong object from " + login);
                 }
             }
         } finally {
@@ -73,7 +93,8 @@ public class CloudServerHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         cause.printStackTrace();
-        //ctx.flush();
+        isAuth = false;
+        ctx.flush();
         ctx.close();
     }
 }

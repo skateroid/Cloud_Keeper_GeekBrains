@@ -1,7 +1,7 @@
 package src;
 
 import com.geekcloud.auth.AuthService;
-import com.geekcloud.auth.DatabaseAuthService;
+import com.geekcloud.auth.SqliteAuthService;
 import com.geekcloud.auth.exceptions.AuthServiceException;
 import com.geekcloud.common.settings.ServerConst;
 import com.geekcloud.common.messaging.Server_API;
@@ -9,9 +9,12 @@ import com.geekcloud.common.messaging.Server_API;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Vector;
 
 public class Server implements ServerConst, Server_API {
+    private final Path ROOT = Paths.get("_cloud_repository");
     private Vector<ClientHandler> clients;
     private AuthService authService;
     public AuthService getAuthService(){
@@ -23,7 +26,7 @@ public class Server implements ServerConst, Server_API {
         clients = new Vector<>(); //вектор нужно заменять на коллекцию из java.util.concurrent или Collections.synchronized
         try{
             serverSocket = new ServerSocket(ServerConst.PORT);
-            authService = new DatabaseAuthService();
+            authService = new SqliteAuthService(ROOT.resolve("users").toAbsolutePath().toString());
             authService.start();
             System.out.println("Сервер запущен, ждем клиентов");
             while(true){
