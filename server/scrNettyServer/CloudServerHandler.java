@@ -2,6 +2,7 @@ package scrNettyServer;
 
 
 import com.geekcloud.auth.AuthService;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.ReferenceCountUtil;
@@ -45,7 +46,6 @@ public class CloudServerHandler extends ChannelInboundHandlerAdapter {
                 if (msg instanceof AuthMessage) {
                     String login = ((AuthMessage) msg).getLogin();
                     String password = ((AuthMessage) msg).getPassword();
-
                     if (AUTH_SERVICE.isLoginAccepted(login, password)) {
                         // Проверяем, на месте ли папка с файлами пользователя
                         if(Files.isDirectory(SERVER_DIRECTORY.resolve(login), LinkOption.NOFOLLOW_LINKS)) {
@@ -53,7 +53,7 @@ public class CloudServerHandler extends ChannelInboundHandlerAdapter {
                         } else {
                             // если папки нет, пользователя пускать нельзя
                             Logger.getGlobal().severe("NO DIRECTORY FOUND FOR VALID USER " + login);
-                            ctx.write(new ResultMessage(Result.FAILED));
+                            ctx.write(new ResultMessage(ResultMessage.Result.FAILED));
                             ctx.flush();
                             throw new Exception("User directory not found");
                         }
@@ -61,11 +61,13 @@ public class CloudServerHandler extends ChannelInboundHandlerAdapter {
                         this.login = login;
                         isAuth = true;
 
-                        ctx.write(new ResultMessage(Result.OK));
+                        ChannelFuture channelFuture = ctx.writeAndFlush(ResultMessage.Result.OK);
+
+                        System.out.println("OK");
                         // TODO вписать сюда отсылку списка файлов пользователю
                         ctx.flush();
                     } else {
-                        ctx.write(new ResultMessage(Result.FAILED));
+                        ctx.write(new ResultMessage(ResultMessage.Result.FAILED));
                         ctx.flush();
                     }
                 }

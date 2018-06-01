@@ -14,6 +14,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.serialization.ClassResolvers;
 import io.netty.handler.codec.serialization.ObjectDecoder;
 import com.geekcloud.common.settings.ServerConst;
+import io.netty.handler.codec.serialization.ObjectEncoder;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -67,6 +68,7 @@ public class CloudServer {
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         protected void initChannel(SocketChannel socketChannel) {
                             socketChannel.pipeline().addLast(
+                                    new ObjectEncoder(),
                                     new ObjectDecoder(MAX_OBJ_SIZE, ClassResolvers.cacheDisabled(null)),
                                     new CloudServerHandler(ROOT.toAbsolutePath(), authService)
                             );
