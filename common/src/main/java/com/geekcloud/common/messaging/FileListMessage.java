@@ -6,6 +6,7 @@ public class FileListMessage extends Message {
 
     private String currentDirectory; // путь к текущей директории от корневой папки на сервере
     private List <FileInfo> fileList; // список файлов в формате, удобном для отображения в Java FX TableView
+    private List<String> fileListString;
 
     public FileListMessage(String currentDirectory, List<FileInfo> fileList) {
         this.currentDirectory = currentDirectory;
@@ -22,6 +23,10 @@ public class FileListMessage extends Message {
 
     public List<FileInfo> getFileList() {
         return fileList;
+    }
+
+    public List<String> getFileListString() {
+        return fileListString;
     }
 
     public void setFileList(List<FileInfo> fileList) {
