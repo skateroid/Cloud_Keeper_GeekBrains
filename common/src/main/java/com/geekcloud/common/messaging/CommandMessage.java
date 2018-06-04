@@ -42,8 +42,9 @@ public class CommandMessage extends Message {
         return newDirectoryName;
     }
 
-    public void setCommand(Command command) {
+    public CommandMessage setCommand(Command command) {
         this.command = command;
+        return this;
     }
 
     public void setFileName(String fileName) {

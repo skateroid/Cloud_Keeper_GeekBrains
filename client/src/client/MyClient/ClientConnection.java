@@ -9,19 +9,19 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.List;
 
 import io.netty.handler.codec.serialization.ObjectDecoderInputStream;
 import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
 import com.geekcloud.common.settings.ServerConst;
 import com.geekcloud.common.messaging.*;
+import javafx.collections.FXCollections;
 
 public class ClientConnection implements ServerConst, Server_API {
     private Socket socket;
     private ObjectEncoderOutputStream oeos;
     private ObjectDecoderInputStream odis;
     private boolean isAuthrozied;
-    private List<String> filesList;
+//    private List<String> filesList;
 
     public boolean isAuthrozied() {
         return isAuthrozied;
@@ -45,6 +45,7 @@ public class ClientConnection implements ServerConst, Server_API {
                 try {
                     while (true) {
                         Object message = odis.readObject();
+                        System.out.println(message.getClass().getName()); // временно, для тестирования
                         if (message != null) {
                             System.out.println(message.toString());
                             if (message instanceof ResultMessage.Result) {
@@ -62,6 +63,7 @@ public class ClientConnection implements ServerConst, Server_API {
                         if (message != null) {
                             if (message instanceof CommandMessage) {
                                 CommandMessage commandMessage = (CommandMessage) message;
+                                System.out.println(commandMessage.getClass().getName()); // временно, для тестирования
                                /* if (((CommandMessage) message).getCommand() == CommandMessage.Command.LIST_FILES) {
                                     //нужно как-то вернуть лист файлов текущей папки на сервере
                                 } else if (((CommandMessage) message).getCommand() != CommandMessage.Command.LIST_FILES) {
@@ -69,8 +71,8 @@ public class ClientConnection implements ServerConst, Server_API {
                                 }*/
                             }
                             if (message instanceof FileListMessage) {
-                                FileListMessage fileListMessage = (FileListMessage) message;
-
+                                controller.getCloudFilesTable()
+                                        .setItems(FXCollections.observableArrayList(((FileListMessage) message).getFileList()));
                             }
                             if (message instanceof DataTransferMessage) {
                                 DataTransferMessage dataTransferMessage = (DataTransferMessage) message;
