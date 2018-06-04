@@ -2,7 +2,6 @@ package scrNettyServer;
 
 
 import com.geekcloud.auth.AuthService;
-import com.geekcloud.common.fileprocessing.FileHelper;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -65,7 +64,7 @@ public class CloudServerHandler extends ChannelInboundHandlerAdapter {
                         ChannelFuture channelFuture = ctx.writeAndFlush(ResultMessage.Result.OK);
 
                         System.out.println("OK");
-                        ctx.writeAndFlush(new FileHelper().listFilesToMessage(currentDirectory.toAbsolutePath(), SERVER_DIRECTORY.toAbsolutePath()));
+                        ctx.writeAndFlush(new FileListMessage(currentDirectory.toAbsolutePath(), SERVER_DIRECTORY.toAbsolutePath()));
                     } else {
                         ctx.write(new ResultMessage(ResultMessage.Result.FAILED));
                         ctx.flush();
@@ -78,7 +77,7 @@ public class CloudServerHandler extends ChannelInboundHandlerAdapter {
                         case DELETE:
                             break;
                         case LIST_FILES:
-                            ctx.writeAndFlush(new FileHelper().listFilesToMessage(currentDirectory.toAbsolutePath(), SERVER_DIRECTORY.toAbsolutePath()));
+                            ctx.writeAndFlush(new FileListMessage(currentDirectory.toAbsolutePath(), SERVER_DIRECTORY.toAbsolutePath()));
                             break;
                         case RENAME:
                             break;
