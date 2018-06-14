@@ -10,8 +10,6 @@ public class DataTransferMessage extends Message {
     private String path;
     private byte[] data;
     private int size;
-    private int partsCount;
-    private int partNumber;
 
     public DataTransferMessage(Path path) {
         this.path = path.toString();
@@ -24,26 +22,11 @@ public class DataTransferMessage extends Message {
         this.size = data.length;
     }
 
-    public DataTransferMessage(String fileName, byte[] data, int partsCount, int partNumber) {
-        this.fileName = fileName;
-        this.data = data;
-        this.partsCount = partsCount;
-        this.partNumber = partNumber;
-    }
-
     public String getFileName() {
         return fileName;
     }
 
     public byte[] getData() {
         return data;
-    }
-
-    public int getPartsCount() {
-        return partsCount;
-    }
-
-    public int getPartNumber() {
-        return partNumber;
     }
 }

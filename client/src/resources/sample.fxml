@@ -11,7 +11,6 @@
 <?import javafx.scene.text.Font?>
 
 <?import javafx.scene.control.TableView?>
-<?import javafx.scene.control.TableColumn?>
 <VBox alignment="center" xmlns="http://javafx.com/javafx/8.0.121" xmlns:fx="http://javafx.com/fxml/1" fx:controller="MyClient.Controller">
     <ProgressBar fx:id="operationProgress" managed="false" maxWidth="Infinity" visible="false" />
     <HBox fx:id="authPanel">
@@ -27,7 +26,7 @@
                 </font>
             </Label>
             <TableView fx:id="localList" VBox.vgrow="ALWAYS" />
-            <HBox fx:id="actionPanel1" managed="false"><!-- visible="false"-->
+            <HBox fx:id="actionPanel1" managed="false">
                 <Button maxWidth="Infinity" onAction="#uploadToServer" text="Отправить файл" HBox.hgrow="ALWAYS" />
                 <Button maxWidth="Infinity" onAction="#deleteFromLocalDisk" text="Удалить файл" HBox.hgrow="ALWAYS" />
                 <Button maxWidth="Infinity" onAction="#refreshListClient" text="Обновить" HBox.hgrow="ALWAYS" />
@@ -39,15 +38,9 @@
                     <Font name="System Bold" size="14.0" />
                 </font>
             </Label>
-            <!--<ListView fx:id="cloudList" VBox.vgrow="ALWAYS" />-->
             <ListView fx:id="cloudList" accessibleRole="LIST_VIEW" VBox.vgrow="ALWAYS">
-               <!-- <columns>
-                    <TableColumn fx:id="colType" editable="false" prefWidth="60.0" text=">" />
-                    <TableColumn fx:id="colName" editable="false" prefWidth="240.0" text="Имя файла" />
-                    <TableColumn fx:id="colSize" editable="false" prefWidth="90.0" text="Кб" />
-                </columns>-->
             </ListView>
-            <HBox fx:id="actionPanel2" managed="false"><!--visible="false"-->
+            <HBox fx:id="actionPanel2" managed="false">
                 <Button maxWidth="Infinity" onAction="#downloadFileToDisk" text="Скачать файл" HBox.hgrow="ALWAYS" />
                 <Button maxWidth="Infinity" onAction="#deleteFromServer" text="Удалить файл" HBox.hgrow="ALWAYS" />
                 <Button maxWidth="Infinity" onAction="#refreshListServer" text="Обновить" HBox.hgrow="ALWAYS" />

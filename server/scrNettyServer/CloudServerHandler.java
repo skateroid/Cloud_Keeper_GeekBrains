@@ -29,18 +29,12 @@ public class CloudServerHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         Logger.getGlobal().info("CLIENT CONNECTED: " + InetAddress.getLocalHost().getHostName());
-        // Send greeting for a new connection.
-        // ctx.write("Welcome to " + InetAddress.getLocalHost().getHostName() + "!\r\n");
-        // ctx.write("It is " + new Date() + " now.\r\n");
-        // ctx.flush();
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         try {
-
             if (msg == null) return;
-
             if (!isAuth) {
                 if (msg instanceof AuthMessage) {
                     String login = ((AuthMessage) msg).getLogin();
@@ -63,9 +57,6 @@ public class CloudServerHandler extends ChannelInboundHandlerAdapter {
                         ChannelFuture channelFuture = ctx.writeAndFlush(ResultMessage.Result.OK);
                         channelFuture.await();
 
-                        System.out.println("OK");
-                        /*channelFuture = ctx.writeAndFlush(new FileListMessage(currentDirectory.toAbsolutePath(), SERVER_DIRECTORY.toAbsolutePath()));
-                        channelFuture.await();*/
                         ServerUtilits.sendFileList(ctx.channel(), login);
                     } else {
                         ctx.write(new ResultMessage(ResultMessage.Result.FAILED));
@@ -76,7 +67,6 @@ public class CloudServerHandler extends ChannelInboundHandlerAdapter {
                 if (msg instanceof DataTransferMessage) {
                     Logger.getGlobal().info("Incoming File");
                     DataTransferMessage data = (DataTransferMessage) msg;
-                   // String fileName = data.getFileName();
                     Path path = Paths.get(SERVER_DIRECTORY + "/" + login + "/" + data.getFileName());
                     try {
                         if (Files.exists(path)) {
@@ -88,7 +78,6 @@ public class CloudServerHandler extends ChannelInboundHandlerAdapter {
                         e.printStackTrace();
                     }
                     ServerUtilits.sendFileList(ctx.channel(), login);
-
                 } if (msg instanceof CommandMessage) {
                     Logger.getGlobal().info("Processing command: " + ((CommandMessage) msg).getCommand()); // временно, для тестирования
                     switch (((CommandMessage) msg).getCommand()) {
@@ -98,22 +87,11 @@ public class CloudServerHandler extends ChannelInboundHandlerAdapter {
                             ServerUtilits.sendFileList(ctx.channel(), login);
                             break;
                         case LIST_FILES:
-                            /*ChannelFuture channelFuture = ctx.writeAndFlush(new FileListMessage(currentDirectory.toAbsolutePath(), SERVER_DIRECTORY.toAbsolutePath()));
-                            channelFuture.await();*/
                             ServerUtilits.sendFileList(ctx.channel(), login);
                             break;
-                        case RENAME:
-                            break;
                         case DOWNLOAD:
-                            try {
-                                System.out.println(Paths.get(((CommandMessage) msg).getAdditionFile().getPath()));
                                 ChannelFuture channelFuture = ctx.writeAndFlush(new DataTransferMessage(Paths.get(((CommandMessage) msg).getAdditionFile().getPath())));
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-
                             break;
-                        // TODO прописать обработку команд пользователя
                     }
                 } else {
                     Logger.getGlobal().warning("Server received wrong object from " + login);

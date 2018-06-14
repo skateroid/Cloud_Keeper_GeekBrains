@@ -15,15 +15,14 @@ import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
 import com.geekcloud.common.settings.ServerConst;
 import com.geekcloud.common.messaging.*;
 import javafx.application.Platform;
-import javafx.collections.FXCollections;
 
-public class ClientConnection implements ServerConst, Server_API {
+public class ClientConnection implements ServerConst {
     private Socket socket;
     private ObjectEncoderOutputStream oeos;
     private ObjectDecoderInputStream odis;
     private boolean isAuthrozied;
     private String username;
-//    private List<String> filesList;
+    private boolean isConnected;
 
     public boolean isAuthrozied() {
         return isAuthrozied;
@@ -33,23 +32,26 @@ public class ClientConnection implements ServerConst, Server_API {
         isAuthrozied = authrozied;
     }
 
+    public void setConnected(boolean connected) {
+        isConnected = connected;
+    }
+
     public ClientConnection() {
     }
 
-    public void init(Controller controller) { //lazy init
+    public void init(Controller controller) {
         try {
             this.socket = new Socket(SERVER_URL, PORT);
             this.oeos = new ObjectEncoderOutputStream(socket.getOutputStream());
             this.odis = new ObjectDecoderInputStream(socket.getInputStream());
             this.isAuthrozied = false;
+            this.isConnected = true;
 
             new Thread(() -> {
                 try {
                     while (true) {
                         Object message = odis.readObject();
-                        System.out.println(message.getClass().getName()); // временно, для тестирования
                         if (message != null) {
-                            System.out.println(message.toString());
                             if (message instanceof ResultMessage.Result) {
                                 if (message == ResultMessage.Result.OK) {
                                     setAuthrozied(true);
@@ -60,17 +62,11 @@ public class ClientConnection implements ServerConst, Server_API {
                             }
                         }
                     }
-                    while (true) {
+                    while (isConnected) {
                         Object message = odis.readObject();
                         if (message != null) {
-                            System.out.println("!!!");
-                            if (message instanceof CommandMessage) {
-                                CommandMessage commandMessage = (CommandMessage) message;
-                                System.out.println(commandMessage.getClass().getName()); // временно, для тестирования
-
-                            }
-                            if (message instanceof FileListMessage_SimpleVersion) {
-                                FileListMessage_SimpleVersion fm = (FileListMessage_SimpleVersion) message;
+                            if (message instanceof FileListMessage) {
+                                FileListMessage fm = (FileListMessage) message;
                                 Platform.runLater(() -> {
                                     controller.getCloudListItems().clear();
                                     controller.getCloudListItems().addAll(fm.getFiles());
@@ -79,9 +75,6 @@ public class ClientConnection implements ServerConst, Server_API {
                             if (message instanceof DataTransferMessage) {
                                 DataTransferMessage dataTransferMessage = (DataTransferMessage) message;
                                 Path path = Paths.get(controller.getLocalRoot() + "\\" + dataTransferMessage.getFileName());
-                                /*if (!Files.exists(path)) {
-                                    Files.createFile(path);
-                                }*/
                                 try {
                                     if (Files.exists(path)) {
                                         Files.write(path, dataTransferMessage.getData(), StandardOpenOption.TRUNCATE_EXISTING);
@@ -138,33 +131,5 @@ public class ClientConnection implements ServerConst, Server_API {
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    public void downloadFile(DataTransferMessage dataMessage) {
-        Path path = Paths.get("C:\\TestCloudKeeper" + "\\" + dataMessage.getFileName());
-
-        try {
-            if (Files.exists(path)) {
-                Files.write(path, dataMessage.getData(), StandardOpenOption.TRUNCATE_EXISTING);
-            } else {
-                Files.write(path, dataMessage.getData(), StandardOpenOption.CREATE);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-    public void uploadFile() {
-        Path path = Paths.get(""); //нужно получить путь выбранного файла
-        DataTransferMessage dataTransferMessage = new DataTransferMessage(path);
-        try {
-            oeos.writeObject(dataTransferMessage);
-            oeos.flush();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public String getUsername() {
-        return username;
     }
 }

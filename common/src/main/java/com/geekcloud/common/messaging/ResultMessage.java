@@ -2,7 +2,7 @@ package com.geekcloud.common.messaging;
 
 public class ResultMessage {
 
-    public static enum Result {
+    public enum Result {
         OK,
         FAILED
     }
@@ -12,9 +12,4 @@ public class ResultMessage {
     public ResultMessage(Result result) {
         this.result = result;
     }
-
-    public Result getResult() {
-        return result;
-    }
-
 }

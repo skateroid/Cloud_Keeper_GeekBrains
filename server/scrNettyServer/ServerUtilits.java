@@ -1,15 +1,12 @@
 package scrNettyServer;
 
-import com.geekcloud.common.messaging.FileListMessage_SimpleVersion;
+import com.geekcloud.common.messaging.FileListMessage;
 import io.netty.channel.Channel;
-
-import java.io.IOException;
-
 import java.nio.file.Paths;
 
 public class ServerUtilits {
     public static void sendFileList(Channel channel, String login) {
-            FileListMessage_SimpleVersion fm = new FileListMessage_SimpleVersion(Paths.get(getUserPath(login)));
+            FileListMessage fm = new FileListMessage(Paths.get(getUserPath(login)));
             channel.writeAndFlush(fm);
     }
     public static String getUserPath(String login) {
