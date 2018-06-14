@@ -8,10 +8,9 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.ReferenceCountUtil;
 import com.geekcloud.common.messaging.*;
 
+import java.io.IOException;
 import java.net.InetAddress;
-import java.nio.file.Files;
-import java.nio.file.LinkOption;
-import java.nio.file.Path;
+import java.nio.file.*;
 import java.util.logging.Logger;
 
 public class CloudServerHandler extends ChannelInboundHandlerAdapter {
@@ -22,7 +21,7 @@ public class CloudServerHandler extends ChannelInboundHandlerAdapter {
     private final AuthService AUTH_SERVICE;
     private boolean isAuth;
 
-    public CloudServerHandler (Path serverDirectory, AuthService AUTH_SERVICE) {
+    public CloudServerHandler(Path serverDirectory, AuthService AUTH_SERVICE) {
         this.SERVER_DIRECTORY = serverDirectory;
         this.AUTH_SERVICE = AUTH_SERVICE;
     }
@@ -48,7 +47,7 @@ public class CloudServerHandler extends ChannelInboundHandlerAdapter {
                     String password = ((AuthMessage) msg).getPassword();
                     if (AUTH_SERVICE.isLoginAccepted(login, password)) {
                         // Проверяем, на месте ли папка с файлами пользователя
-                        if(Files.isDirectory(SERVER_DIRECTORY.resolve(login), LinkOption.NOFOLLOW_LINKS)) {
+                        if (Files.isDirectory(SERVER_DIRECTORY.resolve(login), LinkOption.NOFOLLOW_LINKS)) {
                             currentDirectory = SERVER_DIRECTORY.resolve(login);
                         } else {
                             // если папки нет, пользователя пускать нельзя
@@ -62,27 +61,59 @@ public class CloudServerHandler extends ChannelInboundHandlerAdapter {
                         isAuth = true;
 
                         ChannelFuture channelFuture = ctx.writeAndFlush(ResultMessage.Result.OK);
+                        channelFuture.await();
 
                         System.out.println("OK");
-                        ctx.writeAndFlush(new FileListMessage(currentDirectory.toAbsolutePath(), SERVER_DIRECTORY.toAbsolutePath()));
+                        /*channelFuture = ctx.writeAndFlush(new FileListMessage(currentDirectory.toAbsolutePath(), SERVER_DIRECTORY.toAbsolutePath()));
+                        channelFuture.await();*/
+                        ServerUtilits.sendFileList(ctx.channel(), login);
                     } else {
                         ctx.write(new ResultMessage(ResultMessage.Result.FAILED));
                         ctx.flush();
                     }
                 }
             } else {
-                if (msg instanceof CommandMessage) {
-                    Logger.getGlobal().info("Processing command: " + ((CommandMessage)msg).getCommand()); // временно, для тестирования
-                    switch (((CommandMessage)msg).getCommand() ) {
+                if (msg instanceof DataTransferMessage) {
+                    Logger.getGlobal().info("Incoming File");
+                    DataTransferMessage data = (DataTransferMessage) msg;
+                   // String fileName = data.getFileName();
+                    Path path = Paths.get(SERVER_DIRECTORY + "/" + login + "/" + data.getFileName());
+                    try {
+                        if (Files.exists(path)) {
+                            Files.write(path, data.getData(), StandardOpenOption.TRUNCATE_EXISTING);
+                        } else {
+                            Files.write(path, data.getData(), StandardOpenOption.CREATE);
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    ServerUtilits.sendFileList(ctx.channel(), login);
+
+                } if (msg instanceof CommandMessage) {
+                    Logger.getGlobal().info("Processing command: " + ((CommandMessage) msg).getCommand()); // временно, для тестирования
+                    switch (((CommandMessage) msg).getCommand()) {
                         case DELETE:
+                            Path path = Paths.get(((CommandMessage) msg).getAddition());
+                            Files.delete(path);
+                            ServerUtilits.sendFileList(ctx.channel(), login);
                             break;
                         case LIST_FILES:
-                            ctx.writeAndFlush(new FileListMessage(currentDirectory.toAbsolutePath(), SERVER_DIRECTORY.toAbsolutePath()));
+                            /*ChannelFuture channelFuture = ctx.writeAndFlush(new FileListMessage(currentDirectory.toAbsolutePath(), SERVER_DIRECTORY.toAbsolutePath()));
+                            channelFuture.await();*/
+                            ServerUtilits.sendFileList(ctx.channel(), login);
                             break;
                         case RENAME:
                             break;
+                        case DOWNLOAD:
+                            try {
+                                System.out.println(Paths.get(((CommandMessage) msg).getAdditionFile().getPath()));
+                                ChannelFuture channelFuture = ctx.writeAndFlush(new DataTransferMessage(Paths.get(((CommandMessage) msg).getAdditionFile().getPath())));
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
 
-                            // TODO прописать обработку команд пользователя
+                            break;
+                        // TODO прописать обработку команд пользователя
                     }
                 } else {
                     Logger.getGlobal().warning("Server received wrong object from " + login);

@@ -1,11 +1,10 @@
 package com.geekcloud.common.messaging;
 
+import java.io.File;
+
 // в объекты этого класса будут заворачиваться команды от пользователя
 // с указанием необходимых для исполнения команды параметров (имя файла, папки и т.п.)
 public class CommandMessage extends Message {
-
-    //  private static final long serialVersionUID = 5193392663743561680L;
-
     public static enum Command {
         // нужно прикинуть, какие ещё действия могут понадобиться пользователю
         CREATE,
@@ -21,6 +20,8 @@ public class CommandMessage extends Message {
     private String newFileName;
     private String directoryName;
     private String newDirectoryName;
+    private String addition;
+    private File additionFile;
 
     public Command getCommand() {
         return command;
@@ -47,8 +48,30 @@ public class CommandMessage extends Message {
         return this;
     }
 
+    public CommandMessage(Command command) {
+        this.command = command;
+    }
+
+    public CommandMessage(Command command, String addition) {
+        this.command = command;
+        this.addition = addition;
+    }
+
+    public CommandMessage(Command command, File additionFile) {
+        this.command = command;
+        this.additionFile = additionFile;
+    }
+
     public void setFileName(String fileName) {
         this.fileName = fileName;
+    }
+
+    public String getAddition() {
+        return addition;
+    }
+
+    public File getAdditionFile() {
+        return additionFile;
     }
 
     public void setNewFileName(String newFileName) {

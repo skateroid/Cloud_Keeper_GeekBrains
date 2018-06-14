@@ -26,7 +26,7 @@
                     <Font name="System Bold" size="14.0" />
                 </font>
             </Label>
-            <ListView fx:id="localList" VBox.vgrow="ALWAYS" />
+            <TableView fx:id="localList" VBox.vgrow="ALWAYS" />
             <HBox fx:id="actionPanel1" managed="false"><!-- visible="false"-->
                 <Button maxWidth="Infinity" onAction="#uploadToServer" text="Отправить файл" HBox.hgrow="ALWAYS" />
                 <Button maxWidth="Infinity" onAction="#deleteFromLocalDisk" text="Удалить файл" HBox.hgrow="ALWAYS" />
@@ -40,13 +40,13 @@
                 </font>
             </Label>
             <!--<ListView fx:id="cloudList" VBox.vgrow="ALWAYS" />-->
-            <TableView fx:id="cloudFilesTable" accessibleRole="LIST_VIEW" onMouseClicked="#clickOnFile" VBox.vgrow="ALWAYS">
-                <columns>
+            <ListView fx:id="cloudList" accessibleRole="LIST_VIEW" VBox.vgrow="ALWAYS">
+               <!-- <columns>
                     <TableColumn fx:id="colType" editable="false" prefWidth="60.0" text=">" />
                     <TableColumn fx:id="colName" editable="false" prefWidth="240.0" text="Имя файла" />
                     <TableColumn fx:id="colSize" editable="false" prefWidth="90.0" text="Кб" />
-                </columns>
-            </TableView>
+                </columns>-->
+            </ListView>
             <HBox fx:id="actionPanel2" managed="false"><!--visible="false"-->
                 <Button maxWidth="Infinity" onAction="#downloadFileToDisk" text="Скачать файл" HBox.hgrow="ALWAYS" />
                 <Button maxWidth="Infinity" onAction="#deleteFromServer" text="Удалить файл" HBox.hgrow="ALWAYS" />

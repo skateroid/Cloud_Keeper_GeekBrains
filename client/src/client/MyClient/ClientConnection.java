@@ -14,6 +14,7 @@ import io.netty.handler.codec.serialization.ObjectDecoderInputStream;
 import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
 import com.geekcloud.common.settings.ServerConst;
 import com.geekcloud.common.messaging.*;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 
 public class ClientConnection implements ServerConst, Server_API {
@@ -21,6 +22,7 @@ public class ClientConnection implements ServerConst, Server_API {
     private ObjectEncoderOutputStream oeos;
     private ObjectDecoderInputStream odis;
     private boolean isAuthrozied;
+    private String username;
 //    private List<String> filesList;
 
     public boolean isAuthrozied() {
@@ -61,21 +63,35 @@ public class ClientConnection implements ServerConst, Server_API {
                     while (true) {
                         Object message = odis.readObject();
                         if (message != null) {
+                            System.out.println("!!!");
                             if (message instanceof CommandMessage) {
                                 CommandMessage commandMessage = (CommandMessage) message;
                                 System.out.println(commandMessage.getClass().getName()); // временно, для тестирования
-                               /* if (((CommandMessage) message).getCommand() == CommandMessage.Command.LIST_FILES) {
-                                    //нужно как-то вернуть лист файлов текущей папки на сервере
-                                } else if (((CommandMessage) message).getCommand() != CommandMessage.Command.LIST_FILES) {
-                                    //здесь нужно вызвать метод, который будет обмениваться файлами с серваком
-                                }*/
+
                             }
-                            if (message instanceof FileListMessage) {
-                                controller.getCloudFilesTable()
-                                        .setItems(FXCollections.observableArrayList(((FileListMessage) message).getFileList()));
+                            if (message instanceof FileListMessage_SimpleVersion) {
+                                FileListMessage_SimpleVersion fm = (FileListMessage_SimpleVersion) message;
+                                Platform.runLater(() -> {
+                                    controller.getCloudListItems().clear();
+                                    controller.getCloudListItems().addAll(fm.getFiles());
+                                });
                             }
                             if (message instanceof DataTransferMessage) {
                                 DataTransferMessage dataTransferMessage = (DataTransferMessage) message;
+                                Path path = Paths.get(controller.getLocalRoot() + "\\" + dataTransferMessage.getFileName());
+                                /*if (!Files.exists(path)) {
+                                    Files.createFile(path);
+                                }*/
+                                try {
+                                    if (Files.exists(path)) {
+                                        Files.write(path, dataTransferMessage.getData(), StandardOpenOption.TRUNCATE_EXISTING);
+                                    } else {
+                                        Files.write(path, dataTransferMessage.getData(), StandardOpenOption.CREATE);
+                                    }
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+                                controller.refreshListClient();
                             }
                         }
                     }
@@ -104,6 +120,7 @@ public class ClientConnection implements ServerConst, Server_API {
             MessageDigest digest = java.security.MessageDigest.getInstance("MD5");
             digest.update(password.getBytes());
             AuthMessage authMessage = new AuthMessage(login, new String(digest.digest()));
+            this.username = login;
             oeos.writeObject(authMessage);
             oeos.flush();
         } catch (IOException e) {
@@ -123,8 +140,9 @@ public class ClientConnection implements ServerConst, Server_API {
         }
     }
 
-    public void saveFileToLocalDisk(DataTransferMessage dataMessage) {
+    public void downloadFile(DataTransferMessage dataMessage) {
         Path path = Paths.get("C:\\TestCloudKeeper" + "\\" + dataMessage.getFileName());
+
         try {
             if (Files.exists(path)) {
                 Files.write(path, dataMessage.getData(), StandardOpenOption.TRUNCATE_EXISTING);
@@ -135,7 +153,7 @@ public class ClientConnection implements ServerConst, Server_API {
             e.printStackTrace();
         }
     }
-    public void sendFileToServer() {
+    public void uploadFile() {
         Path path = Paths.get(""); //нужно получить путь выбранного файла
         DataTransferMessage dataTransferMessage = new DataTransferMessage(path);
         try {
@@ -146,4 +164,7 @@ public class ClientConnection implements ServerConst, Server_API {
         }
     }
 
+    public String getUsername() {
+        return username;
+    }
 }

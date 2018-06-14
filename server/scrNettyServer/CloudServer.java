@@ -68,8 +68,8 @@ public class CloudServer {
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         protected void initChannel(SocketChannel socketChannel) {
                             socketChannel.pipeline().addLast(
-                                    new ObjectEncoder(),
                                     new ObjectDecoder(MAX_OBJ_SIZE, ClassResolvers.cacheDisabled(null)),
+                                    new ObjectEncoder(),
                                     new CloudServerHandler(ROOT.toAbsolutePath(), authService)
                             );
                         }
