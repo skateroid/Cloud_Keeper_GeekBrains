@@ -30,7 +30,7 @@ public class BaseAuthService implements AuthService{
     }
 
     public void start(){
-        testPrefill(); // TODO убрать по завершении разработки
+        testPrefill();
     }
 
     public void stop(){}

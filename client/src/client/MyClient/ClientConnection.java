@@ -32,10 +32,6 @@ public class ClientConnection implements ServerConst {
         isAuthrozied = authrozied;
     }
 
-    public void setConnected(boolean connected) {
-        isConnected = connected;
-    }
-
     public ClientConnection() {
     }
 
@@ -74,7 +70,7 @@ public class ClientConnection implements ServerConst {
                             }
                             if (message instanceof DataTransferMessage) {
                                 DataTransferMessage dataTransferMessage = (DataTransferMessage) message;
-                                Path path = Paths.get(controller.getLocalRoot() + "\\" + dataTransferMessage.getFileName());
+                                Path path = Paths.get(controller.getROOT() + "\\" + dataTransferMessage.getFileName());
                                 try {
                                     if (Files.exists(path)) {
                                         Files.write(path, dataTransferMessage.getData(), StandardOpenOption.TRUNCATE_EXISTING);

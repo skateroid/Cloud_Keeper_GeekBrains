@@ -34,13 +34,12 @@ public class SqliteAuthService implements AuthService {
             this.connection = DriverManager.getConnection("jdbc:sqlite:"+DATABASE_URL);
             checkCreateUsersTable();
             prepareStatements();
-            testPrefill(); // TODO убрать по завершении разработки
+            testPrefill();
         } catch (SQLException | AuthServiceException e) {
             throw new DatabaseConnectionException();
         }
     }
 
-    // Тестовые данные для базы - только на стадии разработки
     private synchronized void testPrefill() throws AuthServiceException {
         String [] [] testUsers = {
                 {"login1",  "pass1", "Rick"},

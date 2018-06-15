@@ -26,8 +26,7 @@ import java.util.stream.Collectors;
 
 public class Controller implements Initializable {
 
-   // private final static String LOCAL_ROOT2 = "client\\local_storage_for_all_users";
-    private final static String LOCAL_ROOT = "C:\\GitHub\\geek-cloud\\Cloud_Keeper_GeekBrains\\client\\local_storage_for_all_users";
+    private final Path ROOT = Paths.get("_local_repository");
 
     @FXML
     private TableView<File> localList;
@@ -101,8 +100,14 @@ public class Controller implements Initializable {
 
     public void refreshListClient() {
         try {
-            localListItems.clear();
-            localListItems.addAll(Files.list(Paths.get(LOCAL_ROOT)).map(Path::toFile).collect(Collectors.toList()));
+            if (Files.exists(ROOT)) {
+                localListItems.clear();
+                localListItems.addAll(Files.list(ROOT).map(Path::toFile).collect(Collectors.toList()));
+            } else {
+                Files.createDirectory(ROOT);
+                localListItems.clear();
+                localListItems.addAll(Files.list(ROOT).map(Path::toFile).collect(Collectors.toList()));
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -141,7 +146,7 @@ public class Controller implements Initializable {
         return cloudListItems;
     }
 
-    public static String getLocalRoot() {
-        return LOCAL_ROOT;
+    public Path getROOT() {
+        return ROOT;
     }
 }
