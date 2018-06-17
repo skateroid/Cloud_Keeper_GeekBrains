@@ -24,6 +24,8 @@ import java.nio.file.Paths;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
+
 public class Controller implements Initializable {
 
     private final Path ROOT = Paths.get("_local_repository");
@@ -71,8 +73,11 @@ public class Controller implements Initializable {
     }
 
     public void showMessage(Component parent, String message) {
-        JOptionPane jOptionPane = new JOptionPane();
-        jOptionPane.showMessageDialog(parent, message);
+        JOptionPane.showMessageDialog(parent, message);
+    }
+
+    public String showInputDialog() {
+        return JOptionPane.showInputDialog(null, "Введите новое имя");
     }
 
     public void downloadFileToDisk() {
@@ -117,6 +122,35 @@ public class Controller implements Initializable {
         clientConnection.sendMessage(new CommandMessage(CommandMessage.Command.LIST_FILES));
     }
 
+    public void renameFileOnServer() {
+        String newName = showInputDialog();
+        clientConnection.sendMessage(new CommandMessage(CommandMessage.Command.RENAME, cloudList.getSelectionModel().getSelectedItem(), newName));
+    }
+
+    public void renameLocalFile() {
+        String newName = showInputDialog();
+        String expansion = null;
+        try {
+            expansion = localList.getSelectionModel().getSelectedItem().getName().split("\\.")[1];
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        try {
+            Path source = Paths.get(localList.getSelectionModel().getSelectedItem().getPath());
+            if (expansion == null) {
+                Files.move(source, source.resolveSibling(newName));
+            } else {
+                if (newName.contains(".")) {
+                    Files.move(source, source.resolveSibling(newName));
+                } else {
+                    Files.move(source, source.resolveSibling(newName + "." + expansion));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        refreshListClient();
+    }
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {

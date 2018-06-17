@@ -30,6 +30,7 @@
                 <Button maxWidth="Infinity" onAction="#uploadToServer" text="Отправить файл" HBox.hgrow="ALWAYS" />
                 <Button maxWidth="Infinity" onAction="#deleteFromLocalDisk" text="Удалить файл" HBox.hgrow="ALWAYS" />
                 <Button maxWidth="Infinity" onAction="#refreshListClient" text="Обновить" HBox.hgrow="ALWAYS" />
+                <Button maxWidth="Infinity" onAction="#renameLocalFile" text="Rename" HBox.hgrow="ALWAYS" />
             </HBox>
         </VBox>
         <VBox HBox.hgrow="ALWAYS">
@@ -44,6 +45,7 @@
                 <Button maxWidth="Infinity" onAction="#downloadFileToDisk" text="Скачать файл" HBox.hgrow="ALWAYS" />
                 <Button maxWidth="Infinity" onAction="#deleteFromServer" text="Удалить файл" HBox.hgrow="ALWAYS" />
                 <Button maxWidth="Infinity" onAction="#refreshListServer" text="Обновить" HBox.hgrow="ALWAYS" />
+                <Button maxWidth="Infinity" onAction="#renameFileOnServer" text="Rename" HBox.hgrow="ALWAYS" />
             </HBox>
         </VBox>
     </HBox>

@@ -8,6 +8,7 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.ReferenceCountUtil;
 import com.geekcloud.common.messaging.*;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.file.*;
@@ -78,7 +79,8 @@ public class CloudServerHandler extends ChannelInboundHandlerAdapter {
                         e.printStackTrace();
                     }
                     ServerUtilits.sendFileList(ctx.channel(), login);
-                } if (msg instanceof CommandMessage) {
+                }
+                if (msg instanceof CommandMessage) {
                     Logger.getGlobal().info("Processing command: " + ((CommandMessage) msg).getCommand()); // временно, для тестирования
                     switch (((CommandMessage) msg).getCommand()) {
                         case DELETE:
@@ -90,7 +92,33 @@ public class CloudServerHandler extends ChannelInboundHandlerAdapter {
                             ServerUtilits.sendFileList(ctx.channel(), login);
                             break;
                         case DOWNLOAD:
-                                ChannelFuture channelFuture = ctx.writeAndFlush(new DataTransferMessage(Paths.get(((CommandMessage) msg).getAdditionFile().getPath())));
+                            ChannelFuture channelFuture = ctx.writeAndFlush(new DataTransferMessage(Paths.get(((CommandMessage) msg).getAdditionFile().getPath())));
+                            break;
+                        case RENAME:
+                            CommandMessage renameMsg = (CommandMessage) msg;
+                            File fileForRenaming = renameMsg.getAdditionFile();
+                            String newName = renameMsg.getAddition();
+                            String expansion = null;
+                            try {
+                                expansion = fileForRenaming.getName().split("\\.")[1];
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                            try {
+                                Path source = Paths.get(fileForRenaming.getPath());
+                                if (expansion == null) {
+                                    Files.move(source, source.resolveSibling(newName));
+                                } else {
+                                    if (newName.contains(".")) {
+                                        Files.move(source, source.resolveSibling(newName));
+                                    } else {
+                                        Files.move(source, source.resolveSibling(newName + "." + expansion));
+                                    }
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                            ServerUtilits.sendFileList(ctx.channel(), login);
                             break;
                     }
                 } else {
